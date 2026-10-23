@@ -1,0 +1,32 @@
+services:
+  # 개발용: 소스를 바인드 마운트해서 저장하면 바로 반영(HMR)
+  # 실행: docker compose up dev
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: todo-dev
+    ports:
+      - "5173:5173"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      # 호스트의 node_modules 가 컨테이너 것을 덮어쓰지 않도록 분리합니다.
+      # (macOS 에서 설치한 바이너리는 리눅스 컨테이너에서 동작하지 않습니다)
+      - /app/node_modules
+
+  # 배포 형태 확인용: 빌드 후 nginx 로 서빙
+  # 실행: docker compose --profile prod up --build web
+  web:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # .env 값을 빌드 인자로 넘깁니다. 값이 바뀌면 --build 로 다시 빌드해야 합니다.
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
+    container_name: todo-web
+    ports:
+      - "8080:80"
