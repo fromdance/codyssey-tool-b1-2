@@ -1,7 +1,9 @@
+# codyssey-tool-b1-2
+Codyssey All-in-One &lt;AI 도구 학습 - B1-2> 버튼 누르면 화면이 스르륵 바뀌는 요즘 웹사이트 만들기
+
 # 할 일 노트 (React + Supabase)
 
 할 일을 등록/조회/수정/삭제하는 React 단일 페이지 애플리케이션입니다.
-
 
 ## 기술 스택
 
