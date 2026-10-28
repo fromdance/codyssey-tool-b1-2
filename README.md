@@ -39,7 +39,7 @@ npm run preview
 ### Supabase 테이블 만들기
 
 Supabase 대시보드 > SQL Editor 에서 `supabase/schema.sql` 내용을 실행합니다.  
-`todos` 테이블과 RLS 정책(과제용으로 anon 에게 CRUD 허용)이 생성됩니다.
+`todos` 테이블과 RLS 정책(과제용으로 anon/publishable key에게 CRUD 허용)이 생성됩니다.
 
 ## 배포 (Vercel)
 
@@ -47,7 +47,6 @@ Supabase 대시보드 > SQL Editor 에서 `supabase/schema.sql` 내용을 실행
 2. Settings > Environment Variables 에 `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` 등록
 3. 변수를 추가/수정했다면 **Redeploy** (환경변수가 빌드 시점에 값이 들어가기 때문)
 4. `vercel.json` 의 rewrite 설정 덕분에 `/todos/123` 에서 새로고침해도 404 가 나지 않습니다.
-   (Netlify 는 `public/_redirects` 가 같은 역할)
 
 ## Docker로 실행하기
 ### 개발 모드 — 코드 수정이 바로 반영
@@ -146,15 +145,18 @@ CMD ["nginx", "-g", "daemon off;"]
 
 OrbStack은 컨테이너마다 `<컨테이너명>.orb.local` 도메인을 자동으로 만들어 주고, `https://`로 바꿔 접속하면 인증서까지 처리해 줍니다. 포트 번호 없이 접속할 수 있습니다.
 
-### 알아 둘 점
-
-**Vite 환경변수는 빌드 시점에 코드에 박힙니다.** 런타임에 `-e`로 넘기면 반영되지 않기 때문에, 배포 모드에서는 `.env` 값을 빌드 인자(`args`)로 전달합니다. Supabase 키를 바꾸면 `--build`를 붙여 다시 빌드해야 합니다. 개발 모드는 Vite 개발 서버가 직접 `.env`를 읽으므로 `env_file`만으로 충분합니다.
-
-**node_modules는 익명 볼륨으로 분리했습니다.** `.:/app` 하나만 마운트하면 macOS에서 설치한 `node_modules`가 컨테이너 것을 덮어써서, 플랫폼이 다른 바이너리(esbuild 등) 때문에 실행이 실패합니다.
-
-**파일 감시는 폴링으로 설정했습니다.** 바인드 마운트에서는 파일 변경 이벤트가 컨테이너까지 전달되지 않는 경우가 있어 `vite.config.ts`에 `usePolling`을 켜 두었습니다. CPU 사용이 거슬리면 끄고 테스트해 보세요.
-
-**nginx의 `try_files`가 SPA fallback입니다.** `vercel.json`의 rewrite와 같은 역할로, `/todos/123`에서 새로고침해도 404가 나지 않게 합니다.
+### 주요 사항
+#### Vite 환경변수는 빌드 시점에 코드에 박힘
+- 배포 모드에서는 `.env` 값을 빌드 인자(`args`)로 전달함
+- Supabase 키를 바꾸면 `--build`를 붙여 다시 빌드해야 함
+- 개발 모드는 Vite 개발 서버가 직접 `.env`를 읽으므로 `env_file`만으로 충분합니다.
+#### node_modules는 익명 볼륨으로 분리함
+- `.:/app` 하나만 마운트하면 호스트 머신에서 설치한 `node_modules`가 컨테이너 것을 덮어써서, 플랫폼이 다른 바이너리(esbuild 등) 때문에 실행이 실패합니다.
+#### 파일 감시는 폴링으로 설정함
+- 바인드 마운트에서는 파일 변경 이벤트가 컨테이너까지 전달되지 않는 경우가 있어 `vite.config.ts`에 `usePolling`을 켜 둠
+#### nginx의 `try_files`가 SPA fallback임
+- `$uri $uri/`에 해당하는 정적 에셋을 찾지 못했을 때, `index.html`로 이동
+- 이는 `vercel.json`의 rewrite와 같은 역할로, `/todos/123`와 같은 url에서 새로고침해도 404가 나지 않게 함
 
 ### 자주 쓰는 명령
 
@@ -193,7 +195,10 @@ src/
 
 ## 기능 요구 사항
 1. 프로젝트 기본 구성
-   - [x] `pages`(라우트 단위 화면), `components`(재사용 컴포넌트), `hooks` 또는 `lib` (커스텀 훅/유틸)로 폴더 구조 분리
+  - [x] `pages`, `components`, `hooks` 폴더 구조 분리
+     - `pages`: 라우트 단위 화면
+     - `components`: 재사용 컴포넌트
+     - `hooks` 및 `lib`: 커스텀 훅/유틸
    - [x] 공통 레이아웃(헤더/네비게이션)이 주요 페이지에 적용 (`components/Layout.tsx`, `App.tsx` 참고)
    - [x] 단일 핵심 데이터(`할 일`) CRUD가 가능한 수준으로 서비스 주제 선정
 2. 라우팅 (`react-router-dom` 사용)
@@ -209,6 +214,14 @@ src/
    - [x] 네비게이션 통해 주요 라우트 이동 가능한 링크 제공 (`components/Layout.tsx`)
 3. 컴포넌트 설계
    - [x] 최소 8개 이상의 `재사용 컴포넌트` 존재 (`components/` 안에 있는 모든 컴포넌트가 재사용 가능함)
+     - `Badge`
+     - `Button`
+     - `DataState`
+     - `EmptyState`
+     - `ErrorState`
+     - `FormField`
+     - `Loading`
+     - `TodoCard`
    - [x] 페이지 컴포넌트 - UI 컴포넌트 분리(`components/`, `pages/`)
    - [x] 동일한 UI 패턴은 재사용 가능 컴포넌트로 통일 (`DataState.tsx`)
 4. 상태 관리
@@ -232,14 +245,15 @@ src/
 7. React 이벤트 & 렌더링
    - [x] 사용자 이벤트(클릭/입력/제출 등)가 상태 변경으로 이어지고, 렌더링이 변하는 흐름 명확
    - [x] 상태 변경이 렌더링 변화로 이어지는 지점 최소 3군데
-      1. 필터 탭/검색어/정렬 변경 → `useMemo` 로 `visibleTodos` 재계산 → 목록 변경
-      2. 제목/메모 입력 → 글자 수 표시 즉시 변경, 제출 후에는 에러 메시지가 실시간으로 사라짐
-      3. 체크박스 클릭 → 낙관적 업데이트로 줄긋기/개수 변경, 실패 시 원래대로 복구
-      4. 저장/삭제 성공 → 전역 알림 표시 + 페이지 이동
+      1. 필터 탭/검색어/정렬 변경(`TodoListPage`의 `FilterBar`의 `statusFilter` 상태 변경) → `useMemo` 로 인해 `visibleTodos` 재계산 → `TodoList` 재렌더링
+      2. 제목/메모 입력(`TodoEditPage` 또는 `TodoNewPage`의 `TodoForm` 내부 `<input>`에 값 입력) → 글자 수 표시(`<Input>`의 `hint` prop) 변경되어 재렌더링. 만약 유효성 검사 실패시 에러 메시지들(`<Input>`의 `error` prop) 렌더링
+      3. 완료 표시 체크박스 클릭(`TodoListPage`의 `<TodoList>` 의 `<TodoCard>`의 `<input type="checkbox">`) → 낙관적 업데이트로 완료처리, 실패 시 원래대로 복구(`useTodos`의 `toggleCompleted`) -> 완료처리 된 순간 `<TodoCard>`의 `<input type="checkbox">` 및 클래스 업데이트(`todo-card--done` 추가)
+      4. 저장/삭제 성공(`TodoNewPage`, `TodoEditPage`의 `TodoForm`에서 저장 버튼 클릭하거나, `TodoDetailPage`에서 삭제 버튼 클릭) → 전역 알림 표시(`showToast`를 통해 새 `ToastItem`을 `ToastContext`에 추가하고, 이에따라 `<Layout>`의 `<ToastContainer>` 재렌더링) + 페이지 이동(`navigate`)
 8. 배포
    - [x] 배포된 URL에서 아래 흐름 모두 동작
       - 목록/상세 조회
       - 등록/수정/삭제
+      - 배포 URL: https://codyssey-tool-b1-2.vercel.app/
 ## 과제 목표
 ### React에서 컴포넌트가 왜 필요한지, 그리고 본인이 어떤 기준으로 컴포넌트를 쪼갰는지 설명할 수 있다.
 - 컴포넌트가 왜 필요한지
@@ -314,5 +328,20 @@ src/
   - `/todos/new` 라우트 -> `TodoNewPage`가 `TodoForm` 렌더링 -> 필드들에 값을 입력하는 이벤트 발생시 핸들러가 `TodoForm`의 `values`에 필드값을 저장 -> 저장 버튼을 누를시 `<Button>`이 `type=submit`이므로 `submit` 이벤트가 발생해 `<form>`의 `onSubmit` 핸들러 호출됨 -> 핸들러 안에서 제출함 상태(`submitted`) 켠 뒤 필드 값들 유효성 검사 -> 문제 있을 경우 각 에러 메시지 세팅(`errors`), 없을 경우 제출중 상태(`submitting`) 상태 켠 뒤 제출 버튼 메시지 바꿔서 렌더링 -> 제출 로직인 `onSubmit` 호출하여 성공할 경우 생성된 새 할일의 상세보기 페이지(`/todos/{created.id}`)로 이동, 실패시 왜 실패했는지 사유(`submitError`)를 설정하고 이를 렌더링
 
 ## 보너스 구현
-- **전역 상태**: `ToastContext` 로 알림 관리
-- **성능 최적화**: `TodoCard` 에 `React.memo`, 핸들러에 `useCallback`, 목록 계산과 Context value 에 `useMemo`
+### **전역 상태**
+- 알림(`Toast`)을 전역 상태로 관리하도록 구현함
+- 하나의 알림에 대응되는 `ToastItem({id, message, tone})` 객체들의 배열 `toasts`와, 새로운 알림을 추가하는 `showToast()`, 삭제하는 함수 `dismissToast()`를 갖는 `ToastContext`
+- 이 `ToastContext`의 Provider로 `<App>`을 둘러싸, 전역 상태 주입함
+- 이후, Todo 조회 페이지에서 완료 처리하거나/삭제 했을때, 수정 페이지에서 저장했을때, 목록 페이지에서 완료 처리 했을때, 새 할 일 등록 페이지에서 새 할 일을 등록했을 때 알림을 표시
+### **성능 최적화**
+- `useMemo`
+  - `ToastContext` Provider에 주입할 값(`value`)을 메모제이션하여, `{toasts, showToast, dismissToast}`를 캐싱해 이 값이 바뀌었을 때 하위 컴포넌트(`<App>`)의 불필요한 리렌더링 방지
+  - `HomePage`에서 `할 일 목록(todos)`을 기반으로 요약(`summary`)을 만들 때, 만든 요약을 캐싱하여 `todos`가 바뀌지 않았을 때의 불필요한 재렌더링 방지
+  - `TodoListPage`에서 `할 일 목록(todos)`을 기반으로 카운트(전체 할일 개수, 완료한 할일 개수) 계산한 것을 캐싱하여 불필요한 재렌더링 방지
+- `useCallback`
+  - `ToastContext`에서 설정된 `dismissToast`에 대해, 토스트 시각화 함수인 `showToast`를 캐싱
+  - `useTodoDetail`, `useTodos`에서 다시 불러오기(`reload`) 함수의 경우 단순히 `reloadKey`를 1 증가시키는 함수기때문에 재렌더링으로 인해 동일한 함수 다시 생성 및 할당하는 오버헤드 방지
+  - `TodoListPage`에서 할 일 완료여부 토글 함수(`handleToggle`)가 동일한 `완료시 호출되는 콜백함수(toogleComplete)`, `토스트 표시 함수(showToast)`에 대해 캐싱되도록 하여 오버헤드 방지
+- `React.memo`
+  - `TodoCard`에서 카드 자체를 `memo()`의 인자로 넘겨, 카드의 `props({todo, onToggle})`가 바뀌지 않는 한, 재렌더링을 수행하지 않도록 캐싱함
+    - `TodoCard`를 렌더링하는 `TodoList`를 렌더링하는 `<TodoListPage>`에서 `onToggle`을 `useCallback`으로 캐싱했기 때문에, 실질적으로 `todo` prop의 내용이 바뀌어야 재렌더링 됨.

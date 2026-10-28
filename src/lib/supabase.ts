@@ -1,11 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const url = import.meta.env.VITE_SUPABASE_URL;
-
-// 새 키 체계: publishable key (sb_publishable_...) 를 씁니다.
-// 레거시 anon key(eyJ... 로 시작하는 JWT)도 당분간 동작하므로 fallback 으로 둡니다.
-const publishableKey =
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? import.meta.env.VITE_SUPABASE_ANON_KEY;
+const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 /**
  * secret key(sb_secret_...) 는 service_role 로 매핑되어 RLS 를 우회합니다.
